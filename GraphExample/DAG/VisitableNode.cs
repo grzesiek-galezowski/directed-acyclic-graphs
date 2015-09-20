@@ -61,5 +61,6 @@ namespace DAG
     {
       return _parents.Count == 0;
     }
+
   }
 }

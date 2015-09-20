@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="Class1.cs" />
     <Compile Include="DirectedAcyclicGraph.cs" />
+    <Compile Include="DuplicateRootException.cs" />
     <Compile Include="IVisitable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VisitableNode.cs" />
