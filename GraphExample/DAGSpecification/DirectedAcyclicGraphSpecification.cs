@@ -95,10 +95,6 @@ namespace DAGSpecification
       var graph = new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>();
 
       var root = Substitute.For<Agency>();
-      var police = Substitute.For<Group>();
-      var fireforce = Substitute.For<Group>();
-      var a1 = Substitute.For<Device>();
-      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
       graph.AddNode("root", null, root);
 
@@ -106,9 +102,31 @@ namespace DAGSpecification
       Assert.Throws<DuplicateRootException>(() =>
         graph.AddNode("root2", null, Any.Instance<IAuthorizationEntity>())
       );
-
-      //THEN
     }
+
+    [Test]
+    public void ShouldThrowExceptionWhenTryingToAddADifferentItemWithTheSameId()
+    {
+      //GIVEN
+      var graph = new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>();
+
+      var root = Substitute.For<Agency>();
+      var police = Substitute.For<Group>();
+      var fireforce = Substitute.For<Group>();
+      var a1 = Substitute.For<Device>();
+
+      graph.AddNode("root", null, root);
+      graph.AddNode("police", "root", police);
+      graph.AddNode("fireforce", "root", fireforce);
+      graph.AddNode("A1", "police", a1);
+
+
+      //WHEN - THEN
+      Assert.Throws<BoundNodeOverwriteException>(() => 
+        graph.AddNode("A1", "fireforce", Any.OtherThan(a1)));
+      
+    }
+
 
     [Test]
     public void ShouldRemoveOnlyTheNodeWithSpecificParentWhenNodeIsAddedWithTwoParents()

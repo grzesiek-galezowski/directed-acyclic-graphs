@@ -32,6 +32,7 @@ namespace DAG
 
     public void AddChild(VisitableNode<TValue, TVisitor, TId> child)
     {
+      Value.AssertNonTerminal();
       _children[child.Id] = child;
       child._parents[Id] = this;
     }

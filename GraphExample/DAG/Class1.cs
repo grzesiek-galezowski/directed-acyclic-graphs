@@ -57,6 +57,15 @@ namespace DAG
     {
       visitor.Accept(this);
     }
+
+    public void AssertNonTerminal()
+    {
+      throw new TerminalNodeException();
+    }
+  }
+
+  public class TerminalNodeException : Exception
+  {
   }
 
   public class SecurityGroup : Entity
@@ -64,6 +73,11 @@ namespace DAG
     public void Accept(MyVisitor visitor)
     {
       visitor.Accept(this);
+    }
+
+    public void AssertNonTerminal()
+    {
+      
     }
   }
 

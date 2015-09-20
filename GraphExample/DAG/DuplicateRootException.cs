@@ -16,7 +16,10 @@ namespace DAG
       : base("Trying to add root node " + id + " but there was an existing root: " + existingId)
     {
     }
+  }
 
+  public class BoundNodeOverwriteException : Exception
+  {
     
   }
 }

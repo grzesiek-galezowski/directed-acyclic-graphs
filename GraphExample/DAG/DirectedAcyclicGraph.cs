@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
 using System.Linq;
 
 namespace DAG
@@ -20,12 +19,27 @@ namespace DAG
       }
       else
       {
-        EnsureNotADuplicateRoot(node);
+        AssertNotADuplicateRoot(node);
       }
+
+      AssertNoBoundNodeChange(id, value);
+
       _nodes[id] = node;
       //bug this implementation is wrong - 
       //the node is overwritten by whatever is last, thus we need to check whether this is the same node as the previous one added with the same ID
       //maybe make a special method for overwrite?
+    }
+
+    private void AssertNoBoundNodeChange(TId id, TValue value)
+    {
+      if (_nodes.ContainsKey(id))
+      {
+        var previousNode = _nodes[id];
+        if (!previousNode.Value.Equals(value))
+        {
+          throw new BoundNodeOverwriteException();
+        }
+      }
     }
 
     private void Bind(VisitableNode node, TId parentId)
@@ -34,7 +48,7 @@ namespace DAG
       parentNode.AddChild(node);
     }
 
-    private void EnsureNotADuplicateRoot(VisitableNode node)
+    private void AssertNotADuplicateRoot(VisitableNode node)
     {
       var maybeExistingRoot = _nodes.Values.FirstOrDefault(n => n.MatchesRootCondition());
       if (maybeExistingRoot != null)
