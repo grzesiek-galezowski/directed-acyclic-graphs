@@ -8,26 +8,53 @@ namespace DAG
     where TValue : IVisitable<TVisitor> 
     where TId : class, IEquatable<TId>
   {
-    private readonly Dictionary<TId, VisitableNode> _nodes = new Dictionary<TId, VisitableNode>();
+    private readonly IDictionary<TId, VisitableNode> _nodes = new Dictionary<TId, VisitableNode>();
+    private RootOverwriteObserver<TId> _rootOverwriteObserver;
+
+    public DirectedAcyclicGraph()
+    {
+      var nullObserver = new NullObserver<TId>();
+      _rootOverwriteObserver = nullObserver;
+    }
 
     public void AddNode(TId id, TId parentId, TValue value)
     {
-      var node = new VisitableNode(value, id);
-      if (parentId != null)
+      VisitableNode node;
+
+      if (_nodes.ContainsKey(id))
       {
-        Bind(node, parentId);
+        node = _nodes[id];
+        node.Value = value;
       }
       else
       {
-        AssertNotADuplicateRoot(node);
+        node = new VisitableNode(value, id);
       }
 
-      AssertNoBoundNodeChange(id, value);
+      if (parentId == null && HasRoot())
+      {
+        NotifyOnOverwrittenRoot(node);
+        RemoveOldRoot();
+      }
+      else if (parentId != null)
+      {
+        //bug when replacing node, remove its subtree
+        Bind(node, parentId);
+      }
 
       _nodes[id] = node;
-      //bug this implementation is wrong - 
-      //the node is overwritten by whatever is last, thus we need to check whether this is the same node as the previous one added with the same ID
-      //maybe make a special method for overwrite?
+      //bug this implementation is wrong - there is no test that verifies the dictionary itself after the addition
+    }
+
+    private bool HasRoot()
+    {
+      return _nodes.Any(n => n.Value.MatchesRootCondition());
+    }
+
+    private void RemoveOldRoot()
+    {
+      var root = Root();
+      _nodes.Remove(root.Id);
     }
 
     private void AssertNoBoundNodeChange(TId id, TValue value)
@@ -48,12 +75,12 @@ namespace DAG
       parentNode.AddChild(node);
     }
 
-    private void AssertNotADuplicateRoot(VisitableNode node)
+    private void NotifyOnOverwrittenRoot(VisitableNode node)
     {
       var maybeExistingRoot = _nodes.Values.FirstOrDefault(n => n.MatchesRootCondition());
       if (maybeExistingRoot != null)
       {
-        throw DuplicateRootException.Create(node.Id, maybeExistingRoot.Id); //bug refactor
+        _rootOverwriteObserver.RootNodeOverwritten(maybeExistingRoot.Id, node.Id);
       }
     }
 
@@ -71,7 +98,7 @@ namespace DAG
 
 //bug this implementation is wrong - the node is always removed from _nodes even when it occurs many times in the graph
 
-    public void Accept(TVisitor visitor)
+    public void AcceptStartingFromRoot(TVisitor visitor)
     {
       var root = Root();
       root.Accept(visitor);
@@ -94,5 +121,22 @@ namespace DAG
        
     }
 
+    public void NotifyOnRootOverwrite(RootOverwriteObserver<TId> observer)
+    {
+      _rootOverwriteObserver = observer;
+    }
+  }
+
+  public class NullObserver<T> : RootOverwriteObserver<T>
+  {
+    public void RootNodeOverwritten(T oldRootName, T newRootName)
+    {
+      // Method intentionally left empty.
+    }
+  }
+
+  public interface RootOverwriteObserver<T>
+  {
+    void RootNodeOverwritten(T oldRootId, T newRootId);
   }
 }

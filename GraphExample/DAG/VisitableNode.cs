@@ -6,10 +6,10 @@ namespace DAG
 {
   public class VisitableNode<TValue, TVisitor, TId> where TValue : IVisitable<TVisitor> where TId : IEquatable<TId>
   {
-    readonly Dictionary<TId, VisitableNode<TValue, TVisitor, TId>> _children = 
-      new Dictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
-    readonly Dictionary<TId, VisitableNode<TValue, TVisitor, TId>> _parents = 
-      new Dictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
+    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId>> _children = 
+      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
+    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId>> _parents = 
+      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
 
     public VisitableNode(TValue value, TId id)
     {
@@ -18,7 +18,7 @@ namespace DAG
     }
 
     public TId Id { get; private set; }
-    public TValue Value { get; private set; }
+    public TValue Value { get; set; }
 
     public ImmutableHashSet<VisitableNode<TValue, TVisitor, TId>> Parents
     {
