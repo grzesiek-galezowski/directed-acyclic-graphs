@@ -59,8 +59,13 @@
     <Compile Include="Class1.cs" />
     <Compile Include="DirectedAcyclicGraph.cs" />
     <Compile Include="DuplicateRootException.cs" />
+    <Compile Include="GraphHooks.cs" />
+    <Compile Include="GraphStates.cs" />
     <Compile Include="IVisitable.cs" />
+    <Compile Include="NullObserver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RootedGraph.cs" />
+    <Compile Include="RootlessGraph.cs" />
     <Compile Include="VisitableNode.cs" />
   </ItemGroup>
   <ItemGroup>

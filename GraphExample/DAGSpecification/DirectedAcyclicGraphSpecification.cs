@@ -14,7 +14,7 @@ namespace DAGSpecification
 {
   public class DirectedAcyclicGraphSpecification
   {
-    private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateDirectedAcyclicGraph()
+    private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateGraph()
     {
       return new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>();
     }
@@ -23,7 +23,7 @@ namespace DAGSpecification
     public void ShouldTraverseNodeAndAllChildren()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
       
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -60,7 +60,7 @@ namespace DAGSpecification
     public void ShouldTraverseNodeAddedToTwoDifferentParentsTwice()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -97,7 +97,7 @@ namespace DAGSpecification
     public void ShouldOverwritePreviousNodeWhenNewNodeWithTheSameIdIsAddedEvenWithDifferentParent()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -124,7 +124,7 @@ namespace DAGSpecification
     public void ShouldRemoveOnlyTheNodeWithSpecificParentWhenNodeIsAddedWithTwoParents()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -143,20 +143,14 @@ namespace DAGSpecification
       graph.AcceptStartingFromRoot(anyVisitor);
 
       //THEN
-      Received.InOrder(() =>
-      {
-        root.Accept(anyVisitor);
-        police.Accept(anyVisitor);
-        a1.Accept(anyVisitor);
-        fireforce.Accept(anyVisitor);
-      });
+      a1.Received(1).Accept(anyVisitor);
     }
 
     [Test]
     public void ShouldAllowAddingTheSameNodeManyTimesAndTreatItAsSingleNode()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -172,15 +166,17 @@ namespace DAGSpecification
 
       //THEN
       police.Received(1).Accept(anyVisitor);
+
+      //bug there should be a notification
     }
 
     [Test]
     public void ShouldNotifyObserverWhenRootNodeIsOverwritten()
     {
       //GIVEN
-      var observer = Substitute.For<RootOverwriteObserver<string>>();
-      var graph = CreateDirectedAcyclicGraph();
-      graph.NotifyOnRootOverwrite(observer);
+      var observer = Substitute.For<GraphHooks<string>>();
+      var graph = CreateGraph();
+      graph.UseHooksFrom(observer);
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
@@ -198,7 +194,7 @@ namespace DAGSpecification
     public void ShouldNotUseOldRootWhenItIsOverwrittenWithTheSameId()
     {
       //GIVEN
-      var graph = CreateDirectedAcyclicGraph();
+      var graph = CreateGraph();
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
@@ -215,6 +211,21 @@ namespace DAGSpecification
       root.DidNotReceive().Accept(Arg.Any<IAuthorizationEntityVisitor>());
     }
 
+    [Test]
+    public void ShouldNotifyObserverWhenObserverIsPassedToEmptyGraph()
+    {
+      var graph = CreateGraph();
+      var graphHooks = Substitute.For<GraphHooks<string>>();
+      graph.UseHooksFrom(graphHooks);
+
+      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
+
+      //WHEN
+      graph.AcceptStartingFromRoot(anyVisitor);
+
+      //THEN
+      graphHooks.Received(1).VisitorPassedToEmptyGraph();
+    }
 
   }
 

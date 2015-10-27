@@ -4,54 +4,89 @@ using System.Linq;
 
 namespace DAG
 {
-  public class DirectedAcyclicGraph<TValue, TVisitor, TId> 
-    where TValue : IVisitable<TVisitor> 
+  public interface IDirectedAcyclicGraph<in TValue, in TVisitor, TId> 
+    where TValue : IVisitable<TVisitor> where TId : class, IEquatable<TId>
+  {
+    void AddNode(TId id, TId parentId, TValue value);
+    void RemoveNode(TId id, TId parentId);
+    void AcceptStartingFromRoot(TVisitor visitor);
+    void UseHooksFrom(GraphHooks<TId> observer);
+  }
+
+  public class DirectedAcyclicGraph<TValue, TVisitor, TId> : IDirectedAcyclicGraph<TValue, TVisitor, TId> where TValue : IVisitable<TVisitor> 
     where TId : class, IEquatable<TId>
   {
     private readonly IDictionary<TId, VisitableNode> _nodes = new Dictionary<TId, VisitableNode>();
-    private RootOverwriteObserver<TId> _rootOverwriteObserver;
+    private GraphHooks<TId> _graphHooks;
+    private GraphState<TValue, TVisitor, TId> _currentGraphState;
+    private readonly GraphStates<TValue, TVisitor, TId> _graphStates;
 
     public DirectedAcyclicGraph()
     {
-      var nullObserver = new NullObserver<TId>();
-      _rootOverwriteObserver = nullObserver;
+      _graphStates = new GraphStates<TValue, TVisitor, TId>();
+      _graphHooks = new NullObserver<TId>();
+      _currentGraphState = _graphStates.Rootless;
     }
 
     public void AddNode(TId id, TId parentId, TValue value)
     {
-      VisitableNode node;
+      if (IsParentIdOfRoot(parentId))
+      {
+        _currentGraphState.SetRoot(this, _graphStates, id, value);
+      }
+      else
+      {
+        var node = ObtainNode(id, value);
+        //bug when replacing node, remove its subtree
+        CreateBindingBetween(node, parentId);
+        Store(id, node);
+      }
 
+      //bug this implementation is wrong - there is no test that verifies the dictionary itself after the addition
+    }
+
+    public void SetGraphState(GraphState<TValue, TVisitor, TId> currentGraphState)
+    {
+      _currentGraphState = currentGraphState;
+    }
+
+    public void NotifyRootNodeOverwritten(VisitableNode node)
+    {
+      _graphHooks.RootNodeOverwritten(Root().Id, node.Id);
+    }
+
+    public void Store(TId id, VisitableNode node)
+    {
+      _nodes[id] = node;
+    }
+
+    private static bool IsParentIdOfRoot(TId parentId)
+    {
+      return parentId == null;
+    }
+
+    public VisitableNode ObtainNode(TId id, TValue value)
+    {
+      VisitableNode node;
       if (_nodes.ContainsKey(id))
       {
+        //this is not to lose the bound children and parents
         node = _nodes[id];
         node.Value = value;
       }
       else
       {
-        node = new VisitableNode(value, id);
+        node = new VisitableNode(id, value);
       }
-
-      if (parentId == null && HasRoot())
-      {
-        NotifyOnOverwrittenRoot(node);
-        RemoveOldRoot();
-      }
-      else if (parentId != null)
-      {
-        //bug when replacing node, remove its subtree
-        Bind(node, parentId);
-      }
-
-      _nodes[id] = node;
-      //bug this implementation is wrong - there is no test that verifies the dictionary itself after the addition
+      return node;
     }
 
-    private bool HasRoot()
+    public bool HasRoot()
     {
       return _nodes.Any(n => n.Value.MatchesRootCondition());
     }
 
-    private void RemoveOldRoot()
+    public void RemoveOldRoot()
     {
       var root = Root();
       _nodes.Remove(root.Id);
@@ -69,19 +104,10 @@ namespace DAG
       }
     }
 
-    private void Bind(VisitableNode node, TId parentId)
+    private void CreateBindingBetween(VisitableNode node, TId parentId)
     {
       var parentNode = _nodes[parentId];
       parentNode.AddChild(node);
-    }
-
-    private void NotifyOnOverwrittenRoot(VisitableNode node)
-    {
-      var maybeExistingRoot = _nodes.Values.FirstOrDefault(n => n.MatchesRootCondition());
-      if (maybeExistingRoot != null)
-      {
-        _rootOverwriteObserver.RootNodeOverwritten(maybeExistingRoot.Id, node.Id);
-      }
     }
 
     public void RemoveNode(TId id, TId parentId)
@@ -100,8 +126,15 @@ namespace DAG
 
     public void AcceptStartingFromRoot(TVisitor visitor)
     {
-      var root = Root();
-      root.Accept(visitor);
+      if (!HasRoot())
+      {
+        _graphHooks.VisitorPassedToEmptyGraph();
+      }
+      else
+      {
+        var root = Root();
+        root.Accept(visitor);
+      }
     }
 
     private VisitableNode Root()
@@ -111,7 +144,7 @@ namespace DAG
 
     public class VisitableNode : VisitableNode<TValue, TVisitor, TId>
     {
-      public VisitableNode(TValue value, TId id) : base(value, id)
+      public VisitableNode(TId id, TValue value) : base(value, id)
       {
       }
     }
@@ -121,22 +154,14 @@ namespace DAG
        
     }
 
-    public void NotifyOnRootOverwrite(RootOverwriteObserver<TId> observer)
+    public void UseHooksFrom(GraphHooks<TId> observer)
     {
-      _rootOverwriteObserver = observer;
+      _graphHooks = observer;
     }
-  }
 
-  public class NullObserver<T> : RootOverwriteObserver<T>
-  {
-    public void RootNodeOverwritten(T oldRootName, T newRootName)
+    public VisitableNode NewNode(TId id, TValue value)
     {
-      // Method intentionally left empty.
+      return new VisitableNode(id, value);
     }
-  }
-
-  public interface RootOverwriteObserver<T>
-  {
-    void RootNodeOverwritten(T oldRootId, T newRootId);
   }
 }
