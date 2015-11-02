@@ -22,7 +22,7 @@ namespace DAG
         directedAcyclicGraph.SetGraphState(_graphStates.Rooted);
       }
 
-      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph)
+      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage)
       {
         _graphHooks.VisitorPassedToEmptyGraph();
       }

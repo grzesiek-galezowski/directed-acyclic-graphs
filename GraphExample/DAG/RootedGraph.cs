@@ -24,9 +24,9 @@ namespace DAG
         _graphHooks.RootNodeOverwritten(oldRootId, node.Id);
       }
 
-      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph)
+      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage)
       {
-        directedAcyclicGraph.Root().Accept(visitor);
+        nodeStorage.Root().Accept(visitor);
       }
     }
   }

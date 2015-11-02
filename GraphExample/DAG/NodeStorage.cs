@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DAG.Interfaces;
 
 namespace DAG
@@ -52,6 +53,40 @@ namespace DAG
       {
         return _state[parentId];
       }
+
+      public void Remove(TId id)
+      {
+        _state.Remove(id);
+      }
+
+      public VisitableNode Root()
+      {
+        return _state.First(n => n.Value.MatchesRootCondition()).Value;
+      }
+
+      public void AssertContainsOnly(KeyValuePair<TId, TValue>[] elements)
+      {
+        var currentNodes = _state.Select(n => new KeyValuePair<TId, TValue>(n.Key, n.Value.Value)).ToList();
+        var intersect = currentNodes.Except(elements).ToArray();
+        if (intersect.Length != 0)
+        {
+          throw new Exception("There are " + intersect.Length + " non-intersecting elements: <" + DirectedAcyclicGraph.FormatPairs(intersect) +
+                              ">");
+        }
+
+        var intersect2 = elements.Except(currentNodes).ToArray();
+        if (intersect2.Length != 0)
+        {
+          throw new Exception("There are " + intersect2.Length + " non-intersecting elements: <" +
+                              FormatPairs(intersect2) + ">");
+        }
+      }
+
+      private static string FormatPairs(IEnumerable<KeyValuePair<TId, TValue>> keyValuePairs)
+      {
+        return keyValuePairs.Aggregate("", (s, pair) => s + "[" + pair.Key + "=>" + pair.Value + "]");
+      }
+
     }
   }
 }

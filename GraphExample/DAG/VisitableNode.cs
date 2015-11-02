@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using DAG.Interfaces;
 
 namespace DAG
@@ -73,19 +74,30 @@ namespace DAG
         return _parents.Count == 0;
       }
 
-      public void RemoveFrom(IDirectedAcyclicGraph directedAcyclicGraph)
+      public void RemoveFrom(NodeStorage nodeStorage) //bug use this instead of DAG instance
       {
         foreach (var parent in Parents)
         {
-          directedAcyclicGraph.RemoveNode(this.Id, parent.Id);
+          RemoveAssociation(nodeStorage, parent.Id);
         }
 
         foreach (var child in Children)
         {
-          child.RemoveFrom(directedAcyclicGraph);
+          child.RemoveFrom(nodeStorage);
+        }
+
+        if (!Parents.Any())
+        {
+          nodeStorage.Remove(this.Id);
         }
       }
 
+      public void RemoveAssociation(NodeStorage nodeStorage, TId parentId)
+      {
+        //bug removing a child that does not exist
+        var parentNode = nodeStorage.ObtainNode(parentId);
+        parentNode.RemoveDirectChild(Id);
+      }
     }
   }
 }

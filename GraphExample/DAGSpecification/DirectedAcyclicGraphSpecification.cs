@@ -166,7 +166,7 @@ namespace DAGSpecification
       graph.AddNode(nameof(fireforce), nameof(root), fireforce);
       graph.AddNode(nameof(a1), nameof(police), a1);
       graph.AddNode(nameof(a1), nameof(fireforce), a1);
-      graph.RemoveNode(nameof(a1), nameof(fireforce));
+      graph.RemoveAssociation(nameof(a1), nameof(fireforce));
 
       //WHEN
       graph.AcceptStartingFromRoot(anyVisitor);

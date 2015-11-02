@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using DAG.Interfaces;
-using NSubstitute.Exceptions;
 
 namespace DAG
 {
@@ -62,41 +60,27 @@ namespace DAG
 
       public void RemoveOldRoot()
       {
-        var root = Root();
-        root.RemoveFrom(this);
+        var root = _nodeStorage.Root();
+        root.RemoveFrom(_nodeStorage);
       }
 
-      public void RemoveNode(TId id, TId parentId)
+      public void RemoveAssociation(TId id, TId parentId)
       {
-        var parentNode = _nodes[parentId];
-        RemoveChild(parentNode, id);
-      }
-
-      private void RemoveChild(VisitableNode parentNode, TId id)
-      {
-        //bug removing a child that does not exist
-        var node = parentNode.Children.First(n => n.Id == id);
-        parentNode.RemoveDirectChild(id);
-        if (!node.Parents.Any())
-        {
-          //bug test this one!
-          _nodes.Remove(id);
-        }
+        var node = _nodeStorage.ObtainNode(id);
+        node.RemoveAssociation(_nodeStorage, parentId);
       }
 
 //bug this implementation is wrong - the node is always removed from _nodes even when it occurs many times in the graph
 
       public void AcceptStartingFromRoot(TVisitor visitor)
       {
-        _currentGraphState.AcceptStartingFromRoot(visitor, this);
+        _currentGraphState.AcceptStartingFromRoot(visitor, this, _nodeStorage);
       }
 
-      public VisitableNode Root()
+      public void RemoveNode(TId id)
       {
-        return _nodes.First(n => n.Value.MatchesRootCondition()).Value;
+        _nodeStorage.Remove(id);
       }
-
-
 
       public VisitableNode NewNode(TId id, TValue value)
       {
@@ -105,37 +89,14 @@ namespace DAG
 
       public TId RootId()
       {
-        return Root().Id;
+        return _nodeStorage.Root().Id;
       }
 
       public void AssertContainsOnly(params KeyValuePair<TId, TValue>[] elements)
       {
-        AssertContainsOnly(elements, _nodes);
+        _nodeStorage.AssertContainsOnly(elements);
       }
 
-      private static void AssertContainsOnly(KeyValuePair<TId, TValue>[] elements,
-        IDictionary<TId, VisitableNode> visitableNodes)
-      {
-        var currentNodes = visitableNodes.Select(n => new KeyValuePair<TId, TValue>(n.Key, n.Value.Value)).ToList();
-        var intersect = currentNodes.Except(elements).ToArray();
-        if (intersect.Length != 0)
-        {
-          throw new Exception("There are " + intersect.Length + " non-intersecting elements: <" + FormatPairs(intersect) +
-                              ">");
-        }
-
-        var intersect2 = elements.Except(currentNodes).ToArray();
-        if (intersect2.Length != 0)
-        {
-          throw new Exception("There are " + intersect2.Length + " non-intersecting elements: <" +
-                              FormatPairs(intersect2) + ">");
-        }
-      }
-
-      private static string FormatPairs(IEnumerable<KeyValuePair<TId, TValue>> keyValuePairs)
-      {
-        return keyValuePairs.Aggregate("", (s, pair) => s + "[" + pair.Key + "=>" + pair.Value + "]");
-      }
     }
   }
 

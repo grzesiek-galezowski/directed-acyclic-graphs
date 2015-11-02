@@ -8,8 +8,9 @@ namespace DAG
     public interface IDirectedAcyclicGraph
     {
       void AddNode(TId id, TId parentId, TValue value);
-      void RemoveNode(TId id, TId parentId);
+      void RemoveAssociation(TId id, TId parentId);
       void AcceptStartingFromRoot(TVisitor visitor);
+      void RemoveNode(TId id);
     }
   }
 }
