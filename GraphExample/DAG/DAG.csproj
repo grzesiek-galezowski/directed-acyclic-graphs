@@ -62,8 +62,8 @@
     <Compile Include="Exceptions\TerminalNodeException.cs" />
     <Compile Include="GraphStates.cs" />
     <Compile Include="Interfaces\GraphHooks.cs" />
-    <Compile Include="Interfaces\GraphState.cs" />
-    <Compile Include="Interfaces\IDirectedAcyclicGraph.cs" />
+    <Compile Include="GraphState.cs" />
+    <Compile Include="IDirectedAcyclicGraph.cs" />
     <Compile Include="Interfaces\IVisitable.cs" />
     <Compile Include="NodeStorage.cs" />
     <Compile Include="NullObserver.cs" />
@@ -74,7 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <Compile Include="DirectedAcyclicGraph.Types.cs" />
+    <Compile Include="DirectedAcyclicGraphs.cs" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

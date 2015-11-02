@@ -3,27 +3,28 @@ using DAG.Interfaces;
 
 namespace DAG
 {
-
-  public class GraphStates<TValue, TVisitor, TId> where TValue : IVisitable<TVisitor>
-    where TId : class, IEquatable<TId>
+  public partial class DirectedAcyclicGraphs<TValue, TVisitor, TId>
   {
-    private readonly GraphState<TValue, TVisitor, TId> _rootedGraph;
-    private readonly GraphState<TValue, TVisitor, TId> _rootlessGraph;
-
-    public GraphStates(GraphHooks<TId> graphHooks)
+    public class GraphStates
     {
-      _rootedGraph = new RootedGraph<TValue, TVisitor, TId>(graphHooks, this);
-      _rootlessGraph = new RootlessGraph<TValue, TVisitor, TId>(graphHooks, this);
-    }
+      private readonly GraphState _rootedGraph;
+      private readonly GraphState _rootlessGraph;
 
-    public GraphState<TValue, TVisitor, TId> Rootless
-    {
-      get { return _rootlessGraph; }
-    }
+      public GraphStates(GraphHooks<TId> graphHooks)
+      {
+        _rootedGraph = new RootedGraph(graphHooks, this);
+        _rootlessGraph = new RootlessGraph(graphHooks, this);
+      }
 
-    public GraphState<TValue, TVisitor, TId> Rooted
-    {
-      get { return _rootedGraph; }
+      public GraphState Rootless
+      {
+        get { return _rootlessGraph; }
+      }
+
+      public GraphState Rooted
+      {
+        get { return _rootedGraph; }
+      }
     }
   }
 }

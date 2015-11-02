@@ -11,15 +11,15 @@ namespace DAGSpecification
 {
   public class DirectedAcyclicGraphSpecification
   {
-    private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateGraph()
+    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph CreateGraph()
     {
       return CreateGraph(Any.Instance<GraphHooks<string>>());
     }
 
-    private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateGraph(GraphHooks<string> graphHooks)
+    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph CreateGraph(GraphHooks<string> graphHooks)
     {
-      GraphStates<IAuthorizationEntity, IAuthorizationEntityVisitor, string> graphStates = new GraphStates<IAuthorizationEntity, IAuthorizationEntityVisitor, string>(graphHooks);
-      return new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>(graphHooks, graphStates.Rootless);
+      DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates graphStates = new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates(graphHooks);
+      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph(graphHooks, graphStates.Rootless);
     }
 
     [Test]
