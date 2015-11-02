@@ -1,6 +1,6 @@
-﻿namespace DAG
+﻿namespace DAG.Interfaces
 {
-  public interface IVisitable<TVisitor>
+  public interface IVisitable<in TVisitor>
   {
     void Accept(TVisitor visitor);
     void AssertNonTerminal();

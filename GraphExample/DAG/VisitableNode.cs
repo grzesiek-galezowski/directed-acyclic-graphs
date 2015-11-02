@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using DAG.Interfaces;
 
 namespace DAG
 {
-  public class VisitableNode<TValue, TVisitor, TId> where TValue : IVisitable<TVisitor> where TId : IEquatable<TId>
+  public class VisitableNode<TValue, TVisitor, TId, TNode> 
+    where TValue : IVisitable<TVisitor> 
+    where TId : class, IEquatable<TId> 
+    where TNode : VisitableNode<TValue, TVisitor, TId, TNode>
   {
-    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId>> _children = 
-      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
-    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId>> _parents = 
-      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId>>();
+    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId, TNode>> _children = 
+      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId, TNode>>();
+    readonly IDictionary<TId, VisitableNode<TValue, TVisitor, TId, TNode>> _parents = 
+      new SortedDictionary<TId, VisitableNode<TValue, TVisitor, TId, TNode>>();
 
     public VisitableNode(TValue value, TId id)
     {
@@ -20,27 +24,33 @@ namespace DAG
     public TId Id { get; private set; }
     public TValue Value { get; set; }
 
-    public ImmutableHashSet<VisitableNode<TValue, TVisitor, TId>> Parents
+    public ImmutableHashSet<VisitableNode<TValue, TVisitor, TId, TNode>> Parents
     {
       get { return _parents.Values.ToImmutableHashSet(); }
     }
 
-    public ImmutableHashSet<VisitableNode<TValue, TVisitor, TId>> Children
+    public ImmutableHashSet<VisitableNode<TValue, TVisitor, TId, TNode>> Children
     {
       get { return _children.Values.ToImmutableHashSet(); }
     }
 
-    public void AddChild(VisitableNode<TValue, TVisitor, TId> child)
+    public void BindWithChild(VisitableNode<TValue, TVisitor, TId, TNode> child)
     {
       Value.AssertNonTerminal();
       _children[child.Id] = child;
       child._parents[Id] = this;
     }
 
-    public void AddParent(VisitableNode<TValue, TVisitor, TId> parent)
+    public void AddParent(VisitableNode<TValue, TVisitor, TId, TNode> parent)
     {
       _parents[parent.Id] = parent;
       parent._children[Id] = this;
+    }
+
+    public void CreateBindingBetween(TId parentId, NodeStorage<TValue, TVisitor, TId, TNode> nodeStorage)
+    {
+      var parentNode = nodeStorage.ObtainNode(parentId);
+      parentNode.BindWithChild(this);
     }
 
     public void Accept(TVisitor visitor)
@@ -61,6 +71,19 @@ namespace DAG
     public bool MatchesRootCondition()
     {
       return _parents.Count == 0;
+    }
+
+    public void RemoveFrom(IDirectedAcyclicGraph<TValue, TVisitor, TId> directedAcyclicGraph)
+    {
+      foreach (var parent in Parents)
+      {
+        directedAcyclicGraph.RemoveNode(this.Id, parent.Id);
+      }
+
+      foreach (var child in Children)
+      {
+        child.RemoveFrom(directedAcyclicGraph);
+      }
     }
 
   }

@@ -1,4 +1,4 @@
-namespace DAG
+namespace DAG.Interfaces
 {
   public interface GraphHooks<in T>
   {

@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DAG;
+using DAG.Interfaces;
 using NSubstitute;
-using NSubstitute.Exceptions;
 using NUnit.Framework;
 using TddEbook.TddToolkit;
 using TddEbook.TddToolkit.NSubstitute;
@@ -16,7 +13,13 @@ namespace DAGSpecification
   {
     private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateGraph()
     {
-      return new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>();
+      return CreateGraph(Any.Instance<GraphHooks<string>>());
+    }
+
+    private static DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string> CreateGraph(GraphHooks<string> graphHooks)
+    {
+      GraphStates<IAuthorizationEntity, IAuthorizationEntityVisitor, string> graphStates = new GraphStates<IAuthorizationEntity, IAuthorizationEntityVisitor, string>(graphHooks);
+      return new DirectedAcyclicGraph<IAuthorizationEntity, IAuthorizationEntityVisitor, string>(graphHooks, graphStates.Rootless);
     }
 
     [Test]
@@ -31,10 +34,10 @@ namespace DAGSpecification
       var a1 = Substitute.For<Device>();
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
-      graph.AddNode("root", null, root);
-      graph.AddNode("police", "root", police);
-      graph.AddNode("fireforce", "root", fireforce);
-      graph.AddNode("A1", "police", a1);
+      graph.AddNode(nameof(root), null, root);
+      graph.AddNode(nameof(police), nameof(root), police);
+      graph.AddNode(nameof(fireforce), nameof(root), fireforce);
+      graph.AddNode(nameof(a1), nameof(police), a1);
 
       //WHEN
       graph.AcceptStartingFromRoot(anyVisitor);
@@ -54,6 +57,13 @@ namespace DAGSpecification
         root.Accept(anyVisitor); 
         police.Accept(anyVisitor);
       });
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(police), police),
+        Entry(nameof(fireforce), fireforce),
+        Entry(nameof(a1), a1)
+      );
     }
 
     [Test]
@@ -91,6 +101,13 @@ namespace DAGSpecification
         a1.Accept(anyVisitor);
       });
 
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(police), police),
+        Entry(nameof(fireforce), fireforce),
+        Entry(nameof(a1), a1)
+      );
+
     }
 
     [Test]
@@ -118,6 +135,18 @@ namespace DAGSpecification
       //THEN
       a1.DidNotReceiveWithAnyArgs().Accept(visitor);
       newA1.Received(2).Accept(visitor);
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(police), police),
+        Entry(nameof(fireforce), fireforce),
+        Entry(nameof(a1), newA1)
+      );
+
+    }
+
+    private static KeyValuePair<string, IAuthorizationEntity> Entry(string name, IAuthorizationEntity root)
+    {
+      return new KeyValuePair<string, IAuthorizationEntity>(name, root);
     }
 
     [Test]
@@ -144,6 +173,14 @@ namespace DAGSpecification
 
       //THEN
       a1.Received(1).Accept(anyVisitor);
+
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(police), police),
+        Entry(nameof(fireforce), fireforce),
+        Entry(nameof(a1), a1)
+      );
     }
 
     [Test]
@@ -168,6 +205,11 @@ namespace DAGSpecification
       police.Received(1).Accept(anyVisitor);
 
       //bug there should be a notification
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(police), police)
+      );
     }
 
     [Test]
@@ -175,8 +217,7 @@ namespace DAGSpecification
     {
       //GIVEN
       var observer = Substitute.For<GraphHooks<string>>();
-      var graph = CreateGraph();
-      graph.UseHooksFrom(observer);
+      var graph = CreateGraph(observer);
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
@@ -188,6 +229,11 @@ namespace DAGSpecification
       //THEN
       observer.Received(1).RootNodeOverwritten(nameof(root), nameof(root2));
       XReceived.Only(() => observer.RootNodeOverwritten(nameof(root), nameof(root2)));
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root2), root2)
+      );
+
     }
 
     [Test]
@@ -198,9 +244,11 @@ namespace DAGSpecification
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
+      var childOfRoot1 = Substitute.For<Group>();
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
       graph.AddNode(nameof(root), null, root);
+      graph.AddNode(nameof(childOfRoot1), nameof(root), childOfRoot1);
       graph.AddNode(nameof(root2), null, root2);
 
       //WHEN
@@ -209,15 +257,17 @@ namespace DAGSpecification
       //THEN
       root2.Received(1).Accept(anyVisitor);
       root.DidNotReceive().Accept(Arg.Any<IAuthorizationEntityVisitor>());
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root2), root2)
+      );
     }
 
     [Test]
     public void ShouldNotifyObserverWhenObserverIsPassedToEmptyGraph()
     {
-      var graph = CreateGraph();
       var graphHooks = Substitute.For<GraphHooks<string>>();
-      graph.UseHooksFrom(graphHooks);
-
+      var graph = CreateGraph(graphHooks);
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
       //WHEN

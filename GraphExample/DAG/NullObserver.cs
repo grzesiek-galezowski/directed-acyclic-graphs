@@ -1,3 +1,5 @@
+using DAG.Interfaces;
+
 namespace DAG
 {
   public class NullObserver<T> : GraphHooks<T>

@@ -1,23 +1,33 @@
 using System;
+using DAG.Interfaces;
 
 namespace DAG
 {
-  public interface GraphState<TValue, TVisitor, TId>
-    where TValue : IVisitable<TVisitor> where TId : class, IEquatable<TId>
-  {
-    void SetRoot(DirectedAcyclicGraph<TValue, TVisitor, TId> directedAcyclicGraph, GraphStates<TValue, TVisitor, TId> graphStates, TId id, TValue value);
-  }
-
   public class RootedGraph<TValue, TVisitor, TId> : 
     GraphState<TValue, TVisitor, TId> 
     where TValue : IVisitable<TVisitor> where TId : class, IEquatable<TId>
   {
-    public void SetRoot(DirectedAcyclicGraph<TValue, TVisitor, TId> directedAcyclicGraph, GraphStates<TValue, TVisitor, TId> graphStates, TId id, TValue value)
+    private readonly GraphHooks<TId> _graphHooks;
+    private readonly GraphStates<TValue, TVisitor, TId> _graphStates;
+
+    public RootedGraph(GraphHooks<TId> graphHooks, GraphStates<TValue, TVisitor, TId> graphStates)
     {
+      _graphHooks = graphHooks;
+      _graphStates = graphStates;
+    }
+
+    public void SetRoot(
+      DirectedAcyclicGraph<TValue, TVisitor, TId> directedAcyclicGraph, TId id, TValue value)
+    {
+      var oldRootId = directedAcyclicGraph.RootId();
+      directedAcyclicGraph.RemoveOldRoot(); //bug this removes current root if it has the same id!!!!!! - add test
       var node = directedAcyclicGraph.ObtainNode(id, value);
-      directedAcyclicGraph.NotifyRootNodeOverwritten(node);
-      directedAcyclicGraph.RemoveOldRoot();
-      directedAcyclicGraph.Store(id, node);
+      _graphHooks.RootNodeOverwritten(oldRootId, node.Id);
+    }
+
+    public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph<TValue, TVisitor, TId> directedAcyclicGraph)
+    {
+      directedAcyclicGraph.Root().Accept(visitor);
     }
   }
 }
