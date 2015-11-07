@@ -7,8 +7,9 @@ namespace DAG
   {
     public interface GraphState
     {
-      void SetRoot(DirectedAcyclicGraph directedAcyclicGraph, TId id, TValue value);
+      void SetRoot(GraphContext directedAcyclicGraph, TId id, TValue value);
       void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage);
+      void RemoveAssociation(GraphContext context, TId id, TId parentId, NodeStorage nodeStorage);
     }
   }
 }

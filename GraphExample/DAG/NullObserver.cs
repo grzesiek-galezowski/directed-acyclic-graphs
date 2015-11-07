@@ -13,5 +13,10 @@ namespace DAG
     {
       // Method intentionally left empty.
     }
+
+    public void TriedToRemoveAssociationFromEmptyGraph(T id, T parentId)
+    {
+      // Method intentionally left empty.
+    }
   }
 }

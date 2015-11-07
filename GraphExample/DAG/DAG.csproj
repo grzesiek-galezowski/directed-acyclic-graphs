@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DagAssertions.cs" />
+    <Compile Include="DirectedAcyclicGraph.Context.cs" />
     <Compile Include="DirectedAcyclicGraph.cs" />
     <Compile Include="Exceptions\BoundNodeOverwriteException.cs" />
     <Compile Include="Exceptions\TerminalNodeException.cs" />

@@ -7,13 +7,15 @@ namespace DAG
   {
     public class GraphStates
     {
+      private readonly Func<TId, TValue, VisitableNode> _nodeFactory;
       private readonly GraphState _rootedGraph;
       private readonly GraphState _rootlessGraph;
 
-      public GraphStates(GraphHooks<TId> graphHooks)
+      public GraphStates(GraphHooks<TId> graphHooks, Func<TId, TValue, VisitableNode> nodeFactory)
       {
+        _nodeFactory = nodeFactory;
         _rootedGraph = new RootedGraph(graphHooks, this);
-        _rootlessGraph = new RootlessGraph(graphHooks, this);
+        _rootlessGraph = new RootlessGraph(graphHooks, this, nodeFactory);
       }
 
       public GraphState Rootless

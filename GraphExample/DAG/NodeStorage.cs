@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DAG.Interfaces;
+using NSubstitute.Exceptions;
 
 namespace DAG
 {
@@ -51,7 +52,14 @@ namespace DAG
 
       public VisitableNode ObtainNode(TId parentId)
       {
-        return _state[parentId];
+        try
+        {
+          return _state[parentId];
+        }
+        catch (KeyNotFoundException e)
+        {
+          throw new NodeNotFoundException<TId>(parentId, e);
+        }
       }
 
       public void Remove(TId id)
@@ -70,7 +78,7 @@ namespace DAG
         var intersect = currentNodes.Except(elements).ToArray();
         if (intersect.Length != 0)
         {
-          throw new Exception("There are " + intersect.Length + " non-intersecting elements: <" + DirectedAcyclicGraph.FormatPairs(intersect) +
+          throw new Exception("There are " + intersect.Length + " non-intersecting elements: <" + FormatPairs(intersect) +
                               ">");
         }
 
@@ -87,6 +95,15 @@ namespace DAG
         return keyValuePairs.Aggregate("", (s, pair) => s + "[" + pair.Key + "=>" + pair.Value + "]");
       }
 
+    }
+  }
+
+  public class NodeNotFoundException<T> : Exception
+  {
+    public NodeNotFoundException(T nodeId, Exception e)
+      : base("Could not find a key with ID: " + nodeId, e)
+    {
+      
     }
   }
 }

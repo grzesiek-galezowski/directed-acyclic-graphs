@@ -10,7 +10,6 @@ namespace DAG
       void AddNode(TId id, TId parentId, TValue value);
       void RemoveAssociation(TId id, TId parentId);
       void AcceptStartingFromRoot(TVisitor visitor);
-      void RemoveNode(TId id);
     }
   }
 }

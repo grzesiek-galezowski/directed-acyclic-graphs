@@ -18,8 +18,26 @@ namespace DAGSpecification
 
     private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph CreateGraph(GraphHooks<string> graphHooks)
     {
-      DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates graphStates = new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates(graphHooks);
-      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph(graphHooks, graphStates.Rootless);
+      var nodeFactory = CreateNodeFactory();
+      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>
+        .DirectedAcyclicGraph(
+          CreateGraphStates(graphHooks, nodeFactory).Rootless, 
+          CreateNodeStorage(nodeFactory));
+    }
+
+    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.NodeStorage CreateNodeStorage(Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> nodeFactory)
+    {
+      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.NodeStorage(new SortedDictionary<string, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode>(), nodeFactory);
+    }
+
+    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates CreateGraphStates(GraphHooks<string> graphHooks, Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> nodeFactory)
+    {
+      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates(graphHooks, nodeFactory);
+    }
+
+    private static Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> CreateNodeFactory()
+    {
+      return (id, value) => new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode(id, value);
     }
 
     [Test]
@@ -74,15 +92,15 @@ namespace DAGSpecification
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
-      var fireforce = Substitute.For<Group>();
       var a1 = Substitute.For<Device>();
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
+      a1.GetHashCode().Returns(1);
+
       graph.AddNode(nameof(root), null, root);
       graph.AddNode(nameof(police), nameof(root), police);
-      graph.AddNode(nameof(fireforce), nameof(root), fireforce);
       graph.AddNode(nameof(a1), nameof(police), a1);
-      graph.AddNode(nameof(a1), nameof(fireforce), a1);
+      graph.AddNode(nameof(a1), nameof(root), a1);
 
       //WHEN
       graph.AcceptStartingFromRoot(anyVisitor);
@@ -93,10 +111,7 @@ namespace DAGSpecification
       Received.InOrder(() =>
       {
         root.Accept(anyVisitor);
-
-        fireforce.Accept(anyVisitor);
         a1.Accept(anyVisitor);
-
         police.Accept(anyVisitor);
         a1.Accept(anyVisitor);
       });
@@ -104,10 +119,8 @@ namespace DAGSpecification
       graph.AssertContainsOnly(
         Entry(nameof(root), root),
         Entry(nameof(police), police),
-        Entry(nameof(fireforce), fireforce),
         Entry(nameof(a1), a1)
       );
-
     }
 
     [Test]
@@ -181,6 +194,72 @@ namespace DAGSpecification
         Entry(nameof(fireforce), fireforce),
         Entry(nameof(a1), a1)
       );
+    }
+
+    [Test]
+    public void ShouldRemoveTheNodeCompletelyAlongWithSubtreeWhenAllNodeAssociationsAreRemoved()
+    {
+      //GIVEN
+      var graph = CreateGraph();
+
+      var root = Substitute.For<Agency>();
+      var police = Substitute.For<Group>();
+      var fireforce = Substitute.For<Group>();
+      var a1 = Substitute.For<Device>();
+      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
+
+      graph.AddNode(nameof(root), null, root);
+      graph.AddNode(nameof(fireforce), nameof(root), fireforce);
+      graph.AddNode(nameof(police), nameof(root), police);
+      graph.AddNode(nameof(police), nameof(fireforce), police);
+      graph.AddNode(nameof(a1), nameof(police), a1);
+      graph.RemoveAssociation(nameof(police), nameof(fireforce));
+      graph.RemoveAssociation(nameof(police), nameof(root));
+
+      //WHEN
+      graph.AcceptStartingFromRoot(anyVisitor);
+
+      //THEN
+      a1.DidNotReceive().Accept(anyVisitor);
+      police.DidNotReceive().Accept(anyVisitor);
+
+
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(fireforce), fireforce)
+      );
+    }
+
+    [Test]
+    public void ShouldThrowNodeNotFoundExceptionWhenTryingToRemoveNodeThatDoesNotExist()
+    {
+      //GIVEN
+      var graph = CreateGraph();
+      var root = Substitute.For<Agency>();
+
+      graph.AddNode(nameof(root), null, root);
+
+
+      //WHEN - THEN
+      Assert.Throws<NodeNotFoundException<string>>(() =>
+        graph.RemoveAssociation(Any.String(), nameof(root)));
+
+    }
+
+    [Test]
+    public void ShouldNotifyWhenTryingToRemoveAssociationFromRootlessGraph()
+    {
+      //GIVEN
+      var hooks = Substitute.For<GraphHooks<string>>();
+      var graph = CreateGraph(hooks);
+      var id = Any.String();
+      var parentId = Any.String();
+
+      //WHEN
+      graph.RemoveAssociation(id, parentId);
+
+      //THEN
+      hooks.Received(1).TriedToRemoveAssociationFromEmptyGraph(id, parentId);
     }
 
     [Test]
@@ -277,10 +356,41 @@ namespace DAGSpecification
       graphHooks.Received(1).VisitorPassedToEmptyGraph();
     }
 
+    [Test]
+    public void ShouldNotifyObserverWhenObserverIsPassedToGraphWhereRootWasRemoved()
+    {
+      var graphHooks = Substitute.For<GraphHooks<string>>();
+      var graph = CreateGraph(graphHooks);
+      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
+      var root = Substitute.For<Agency>();
+
+      graph.AddNode(nameof(root), null, root);
+      graph.RemoveAssociation(nameof(root), null);
+
+      //WHEN
+      graph.AcceptStartingFromRoot(anyVisitor);
+
+      //THEN
+      graphHooks.Received(1).VisitorPassedToEmptyGraph();
+    }
+
+
+    [Test]
+    public void ShouldThrowNodeNotFoundExceptionWhenAddingNodeToParentThatDoesNotExist()
+    {
+      //GIVEN
+      var graph = CreateGraph(Any.Instance<GraphHooks<string>>());
+
+      //WHEN - THEN
+      Assert.Throws<NodeNotFoundException<string>>(() =>
+        graph.AddNode(Any.String(), Any.String(), Any.Instance<IAuthorizationEntity>())
+      );
+    }
+
   }
 
-
-  //TODO allow supplying policies w.g. what happens when someone adds second root
+  //TODO od zaraz - different implementations when there is no root
+  //TODO change state to rootless when root is removed
   //TODO operations on empty graph
   //TODO add operation RemoveAllNodes() without parent id
   //TODO removing subtrees

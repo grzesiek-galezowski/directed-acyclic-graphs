@@ -35,20 +35,14 @@ namespace DAG
         get { return _children.Values.ToImmutableHashSet(); }
       }
 
-      public void BindWithChild(VisitableNode child)
+      private void BindWithChild(VisitableNode child)
       {
         Value.AssertNonTerminal();
         _children[child.Id] = child;
         child._parents[Id] = this;
       }
 
-      public void AddParent(VisitableNode parent)
-      {
-        _parents[parent.Id] = parent;
-        parent._children[Id] = this;
-      }
-
-      public void CreateBindingBetween(TId parentId, NodeStorage nodeStorage)
+      public void BindWithParent(TId parentId, NodeStorage nodeStorage)
       {
         var parentNode = nodeStorage.ObtainNode(parentId);
         parentNode.BindWithChild(this);
@@ -63,10 +57,21 @@ namespace DAG
         }
       }
 
-      public void RemoveDirectChild(TId childId)
+      public void RemoveDirectChild(TId childId, NodeStorage nodeStorage)
       {
-        _children[childId]._parents.Remove(Id);
+        var child = _children[childId];
+        child._parents.Remove(Id);
         _children.Remove(childId);
+
+        if (child.HasNoParentsLeft())
+        {
+          child.RemoveFrom(nodeStorage);
+        }
+      }
+
+      private bool HasNoParentsLeft()
+      {
+        return _parents.Count == 0;
       }
 
       public bool MatchesRootCondition()
@@ -94,9 +99,16 @@ namespace DAG
 
       public void RemoveAssociation(NodeStorage nodeStorage, TId parentId)
       {
-        //bug removing a child that does not exist
-        var parentNode = nodeStorage.ObtainNode(parentId);
-        parentNode.RemoveDirectChild(Id);
+        if (!IsRoot())
+        {
+          var parentNode = nodeStorage.ObtainNode(parentId);
+          parentNode.RemoveDirectChild(Id, nodeStorage);
+        }
+      }
+
+      public bool IsRoot()
+      {
+        return _parents.Count == 0;
       }
     }
   }

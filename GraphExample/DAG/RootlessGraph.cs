@@ -7,18 +7,20 @@ namespace DAG
   {
     public class RootlessGraph : GraphState
     {
-      private readonly GraphHooks<TId> _graphHooks;
-      private readonly GraphStates _graphStates;
+      readonly GraphHooks<TId> _graphHooks;
+      readonly GraphStates _graphStates;
+      readonly Func<TId, TValue, VisitableNode> _nodeFactory;
 
-      public RootlessGraph(GraphHooks<TId> graphHooks, GraphStates graphStates)
+      public RootlessGraph(GraphHooks<TId> graphHooks, GraphStates graphStates, Func<TId, TValue, VisitableNode> nodeFactory)
       {
         _graphHooks = graphHooks;
         _graphStates = graphStates;
+        _nodeFactory = nodeFactory;
       }
 
-      public void SetRoot(DirectedAcyclicGraph directedAcyclicGraph, TId id, TValue value)
+      public void SetRoot(GraphContext directedAcyclicGraph, TId id, TValue value)
       {
-        directedAcyclicGraph.Store(id, directedAcyclicGraph.NewNode(id, value));
+        directedAcyclicGraph.Store(id, _nodeFactory.Invoke(id, value));
         directedAcyclicGraph.SetGraphState(_graphStates.Rooted);
       }
 
@@ -26,6 +28,26 @@ namespace DAG
       {
         _graphHooks.VisitorPassedToEmptyGraph();
       }
+
+      public void RemoveAssociation(GraphContext context, TId id, TId parentId, NodeStorage nodeStorage)
+      {
+        _graphHooks.TriedToRemoveAssociationFromEmptyGraph(id, parentId);
+      }
+    }
+  }
+
+  public class CouldNotRemoveAssociationFromRootlessGraphException<T> : Exception
+  {
+    public CouldNotRemoveAssociationFromRootlessGraphException(T id, T parentId) :
+      base("Could not remove association with ID: "+ id +" and parent ID: " + parentId + "from rootless graph")
+    {
+      
+    }
+
+    public CouldNotRemoveAssociationFromRootlessGraphException(T id)
+      : base("Could not remove association with ID: "+ id +" and from rootless graph")
+    {
+      
     }
   }
 }

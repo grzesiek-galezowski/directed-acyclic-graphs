@@ -16,7 +16,7 @@ namespace DAG
         _graphStates = graphStates;
       }
 
-      public void SetRoot(DirectedAcyclicGraph directedAcyclicGraph, TId id, TValue value)
+      public void SetRoot(GraphContext directedAcyclicGraph, TId id, TValue value)
       {
         var oldRootId = directedAcyclicGraph.RootId();
         directedAcyclicGraph.RemoveOldRoot(); //bug this removes current root if it has the same id!!!!!! - add test
@@ -27,6 +27,17 @@ namespace DAG
       public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage)
       {
         nodeStorage.Root().Accept(visitor);
+      }
+
+      public void RemoveAssociation(GraphContext context, TId id, TId parentId, NodeStorage nodeStorage)
+      {
+        var node = nodeStorage.ObtainNode(id);
+        var isRoot = node.IsRoot();
+        node.RemoveAssociation(nodeStorage, parentId);
+        if (isRoot)
+        {
+          context.SetGraphState(_graphStates.Rootless);
+        }
       }
     }
   }
