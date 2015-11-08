@@ -18,5 +18,10 @@ namespace DAG
     {
       // Method intentionally left empty.
     }
+
+    public void VisitorPassedToEmptyGraph(T id)
+    {
+      // Method intentionally left empty.
+    }
   }
 }

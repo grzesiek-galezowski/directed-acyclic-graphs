@@ -24,7 +24,7 @@ namespace DAG
         directedAcyclicGraph.SetGraphState(_graphStates.Rooted);
       }
 
-      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage)
+      public void AcceptStartingFromRoot(TVisitor visitor, NodeStorage nodeStorage)
       {
         _graphHooks.VisitorPassedToEmptyGraph();
       }
@@ -32,6 +32,11 @@ namespace DAG
       public void RemoveAssociation(GraphContext context, TId id, TId parentId, NodeStorage nodeStorage)
       {
         _graphHooks.TriedToRemoveAssociationFromEmptyGraph(id, parentId);
+      }
+
+      public void AcceptStartingFrom(TId id, TVisitor visitor, NodeStorage nodeStorage)
+      {
+        _graphHooks.VisitorPassedToEmptyGraph(id);
       }
     }
   }

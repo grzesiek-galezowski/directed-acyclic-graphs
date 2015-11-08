@@ -24,7 +24,7 @@ namespace DAG
         _graphHooks.RootNodeOverwritten(oldRootId, node.Id);
       }
 
-      public void AcceptStartingFromRoot(TVisitor visitor, DirectedAcyclicGraph directedAcyclicGraph, NodeStorage nodeStorage)
+      public void AcceptStartingFromRoot(TVisitor visitor, NodeStorage nodeStorage)
       {
         nodeStorage.Root().Accept(visitor);
       }
@@ -38,6 +38,12 @@ namespace DAG
         {
           context.SetGraphState(_graphStates.Rootless);
         }
+      }
+
+      public void AcceptStartingFrom(TId id, TVisitor visitor, NodeStorage nodeStorage)
+      {
+        var node = nodeStorage.ObtainNode(id);
+        node.Accept(visitor);
       }
     }
   }

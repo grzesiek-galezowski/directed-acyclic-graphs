@@ -92,32 +92,41 @@ namespace DAGSpecification
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
+      var fireforce = Substitute.For<Group>();
       var a1 = Substitute.For<Device>();
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
-      a1.GetHashCode().Returns(1);
-
       graph.AddNode(nameof(root), null, root);
       graph.AddNode(nameof(police), nameof(root), police);
+      graph.AddNode(nameof(fireforce), nameof(root), fireforce);
+      graph.AddNode(nameof(a1), nameof(fireforce), a1);
       graph.AddNode(nameof(a1), nameof(police), a1);
-      graph.AddNode(nameof(a1), nameof(root), a1);
 
       //WHEN
-      graph.AcceptStartingFromRoot(anyVisitor);
+      graph.AcceptStartingFrom(nameof(police), anyVisitor);
 
       //THEN
-      a1.Received(2).Accept(anyVisitor);
-
       Received.InOrder(() =>
       {
-        root.Accept(anyVisitor);
-        a1.Accept(anyVisitor);
         police.Accept(anyVisitor);
+        a1.Accept(anyVisitor);
+      });
+
+      fireforce.ClearReceivedCalls(); a1.ClearReceivedCalls(); //TODO move to per-context
+
+      //WHEN
+      graph.AcceptStartingFrom(nameof(fireforce), anyVisitor);
+
+      //THEN
+      Received.InOrder(() =>
+      {
+        fireforce.Accept(anyVisitor);
         a1.Accept(anyVisitor);
       });
 
       graph.AssertContainsOnly(
         Entry(nameof(root), root),
+        Entry(nameof(fireforce), fireforce),
         Entry(nameof(police), police),
         Entry(nameof(a1), a1)
       );
@@ -263,6 +272,22 @@ namespace DAGSpecification
     }
 
     [Test]
+    public void ShouldNotifyWhenTryingToPassVisitorStartingFromArbitraryNodeToEmptyGraph()
+    {
+      //GIVEN
+      var hooks = Substitute.For<GraphHooks<string>>();
+      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
+      var graph = CreateGraph(hooks);
+      var id = Any.String();
+
+      //WHEN
+      graph.AcceptStartingFrom(id, anyVisitor);
+
+      //THEN
+      hooks.Received(1).VisitorPassedToEmptyGraph(id);
+    }
+
+    [Test]
     public void ShouldAllowAddingTheSameNodeManyTimesAndTreatItAsSingleNode()
     {
       //GIVEN
@@ -387,8 +412,47 @@ namespace DAGSpecification
       );
     }
 
+    [Test]
+    //TODO move this to per-context, this test is badly written
+    public void ShouldThrowNodeNotFoundExceptionWhenRemovingAssociationWithWrongParent()
+    {
+      //GIVEN
+      var graph = CreateGraph();
+
+      var root = Substitute.For<Agency>();
+      var childOfRoot1 = Substitute.For<Group>();
+      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
+
+      graph.AddNode(nameof(root), null, root);
+      graph.AddNode(nameof(childOfRoot1), nameof(root), childOfRoot1);
+
+      //WHEN - THEN
+      Assert.Throws<NodeNotFoundException<string>>( () =>
+        graph.RemoveAssociation(nameof(childOfRoot1), Any.StringOtherThan(nameof(root)))
+      );
+
+      //WHEN - THEN
+      graph.AssertContainsOnly(
+        Entry(nameof(root), root),
+        Entry(nameof(childOfRoot1), childOfRoot1)
+      );
+
+      //WHEN
+      graph.AcceptStartingFromRoot(anyVisitor);
+
+      //THEN
+      Received.InOrder(() =>
+      {
+        root.Accept(anyVisitor);
+        childOfRoot1.Accept(anyVisitor);
+      });
+
+
+    }
+
   }
 
+  //TODO visiting from chosen node
   //TODO od zaraz - different implementations when there is no root
   //TODO change state to rootless when root is removed
   //TODO operations on empty graph
@@ -398,6 +462,8 @@ namespace DAGSpecification
   //TODO removing item that's added but with wrong parent
   //TODO removing item that has parent correct but wrong id
   //TODO removing root node
+  //TODO adding node with itself as parent
+  //TODO detecting cycles
 
   public interface Group : IAuthorizationEntity
   {

@@ -5,5 +5,6 @@ namespace DAG.Interfaces
     void RootNodeOverwritten(T oldRootId, T newRootId);
     void VisitorPassedToEmptyGraph();
     void TriedToRemoveAssociationFromEmptyGraph(T id, T parentId);
+    void VisitorPassedToEmptyGraph(T id);
   }
 }

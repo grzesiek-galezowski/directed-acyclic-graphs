@@ -42,7 +42,7 @@ namespace DAG
 
       public void AcceptStartingFromRoot(TVisitor visitor)
       {
-        _currentGraphState.AcceptStartingFromRoot(visitor, this, _nodeStorage);
+        _currentGraphState.AcceptStartingFromRoot(visitor, _nodeStorage);
       }
 
       public void RemoveNode(TId id)
@@ -56,6 +56,10 @@ namespace DAG
         _nodeStorage.AssertContainsOnly(elements);
       }
 
+      public void AcceptStartingFrom(TId id, TVisitor visitor)
+      {
+        _currentGraphState.AcceptStartingFrom(id, visitor, _nodeStorage);
+      }
     }
   }
 
