@@ -9,10 +9,5 @@ namespace DAG
 {
   public partial class DirectedAcyclicGraphs<TValue, TVisitor, TId> where TValue : IVisitable<TVisitor> where TId : class, IEquatable<TId>
   {
-
-    public interface IVisitable : IVisitable<TVisitor>
-    {
-
-    }
   }
 }
