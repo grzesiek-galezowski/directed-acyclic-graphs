@@ -54,7 +54,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DirectedAcyclicGraphSpecification.cs" />
+    <Compile Include="GraphRoot.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TreeLikeStructureFixture.cs" />
+    <Compile Include="TreeLikeStructureSpecification.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

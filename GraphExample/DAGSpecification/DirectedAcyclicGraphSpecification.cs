@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using DAG;
+﻿using DAG;
 using DAG.Interfaces;
 using NSubstitute;
 using NUnit.Framework;
@@ -11,84 +9,13 @@ namespace DAGSpecification
 {
   public class DirectedAcyclicGraphSpecification
   {
-    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph CreateGraph()
-    {
-      return CreateGraph(Any.Instance<GraphHooks<string>>());
-    }
-
-    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.DirectedAcyclicGraph CreateGraph(GraphHooks<string> graphHooks)
-    {
-      var nodeFactory = CreateNodeFactory();
-      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>
-        .DirectedAcyclicGraph(
-          CreateGraphStates(graphHooks, nodeFactory).Rootless, 
-          CreateNodeStorage(nodeFactory));
-    }
-
-    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.NodeStorage CreateNodeStorage(Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> nodeFactory)
-    {
-      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.NodeStorage(new SortedDictionary<string, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode>(), nodeFactory);
-    }
-
-    private static DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates CreateGraphStates(GraphHooks<string> graphHooks, Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> nodeFactory)
-    {
-      return new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.GraphStates(graphHooks, nodeFactory);
-    }
-
-    private static Func<string, IAuthorizationEntity, DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode> CreateNodeFactory()
-    {
-      return (id, value) => new DirectedAcyclicGraphs<IAuthorizationEntity, IAuthorizationEntityVisitor, string>.VisitableNode(id, value);
-    }
-
-    [Test]
-    public void ShouldTraverseNodeAndAllChildren()
-    {
-      //GIVEN
-      var graph = CreateGraph();
-      
-      var root = Substitute.For<Agency>();
-      var police = Substitute.For<Group>();
-      var fireforce = Substitute.For<Group>();
-      var a1 = Substitute.For<Device>();
-      var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
-
-      graph.AddNode(nameof(root), null, root);
-      graph.AddNode(nameof(police), nameof(root), police);
-      graph.AddNode(nameof(fireforce), nameof(root), fireforce);
-      graph.AddNode(nameof(a1), nameof(police), a1);
-
-      //WHEN
-      graph.AcceptStartingFromRoot(anyVisitor);
-
-      //THEN
-      root.Received(1).Accept(anyVisitor);
-
-      Received.InOrder(() =>
-      {
-        root.Accept(anyVisitor); 
-        police.Accept(anyVisitor);
-        a1.Accept(anyVisitor);
-      });
-
-      Received.InOrder(() =>
-      {
-        root.Accept(anyVisitor); 
-        police.Accept(anyVisitor);
-      });
-
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(police), police),
-        Entry(nameof(fireforce), fireforce),
-        Entry(nameof(a1), a1)
-      );
-    }
+    
 
     [Test]
     public void ShouldTraverseNodeAddedToTwoDifferentParentsTwice()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -124,11 +51,7 @@ namespace DAGSpecification
         a1.Accept(anyVisitor);
       });
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(fireforce), fireforce),
-        Entry(nameof(police), police),
-        Entry(nameof(a1), a1)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(fireforce), fireforce), GraphRoot.Entry(nameof(police), police), GraphRoot.Entry(nameof(a1), a1)
       );
     }
 
@@ -136,7 +59,7 @@ namespace DAGSpecification
     public void ShouldOverwritePreviousNodeWhenNewNodeWithTheSameIdIsAddedEvenWithDifferentParent()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -157,25 +80,16 @@ namespace DAGSpecification
       //THEN
       a1.DidNotReceiveWithAnyArgs().Accept(visitor);
       newA1.Received(2).Accept(visitor);
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(police), police),
-        Entry(nameof(fireforce), fireforce),
-        Entry(nameof(a1), newA1)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(police), police), GraphRoot.Entry(nameof(fireforce), fireforce), GraphRoot.Entry(nameof(a1), newA1)
       );
 
-    }
-
-    private static KeyValuePair<string, IAuthorizationEntity> Entry(string name, IAuthorizationEntity root)
-    {
-      return new KeyValuePair<string, IAuthorizationEntity>(name, root);
     }
 
     [Test]
     public void ShouldRemoveOnlyTheNodeWithSpecificParentWhenNodeIsAddedWithTwoParents()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -197,11 +111,7 @@ namespace DAGSpecification
       a1.Received(1).Accept(anyVisitor);
 
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(police), police),
-        Entry(nameof(fireforce), fireforce),
-        Entry(nameof(a1), a1)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(police), police), GraphRoot.Entry(nameof(fireforce), fireforce), GraphRoot.Entry(nameof(a1), a1)
       );
     }
 
@@ -209,7 +119,7 @@ namespace DAGSpecification
     public void ShouldRemoveTheNodeCompletelyAlongWithSubtreeWhenAllNodeAssociationsAreRemoved()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -233,9 +143,7 @@ namespace DAGSpecification
       police.DidNotReceive().Accept(anyVisitor);
 
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(fireforce), fireforce)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(fireforce), fireforce)
       );
     }
 
@@ -243,7 +151,7 @@ namespace DAGSpecification
     public void ShouldThrowNodeNotFoundExceptionWhenTryingToRemoveNodeThatDoesNotExist()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
       var root = Substitute.For<Agency>();
 
       graph.AddNode(nameof(root), null, root);
@@ -260,7 +168,7 @@ namespace DAGSpecification
     {
       //GIVEN
       var hooks = Substitute.For<GraphHooks<string>>();
-      var graph = CreateGraph(hooks);
+      var graph = GraphRoot.CreateGraph(hooks);
       var id = Any.String();
       var parentId = Any.String();
 
@@ -277,7 +185,7 @@ namespace DAGSpecification
       //GIVEN
       var hooks = Substitute.For<GraphHooks<string>>();
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
-      var graph = CreateGraph(hooks);
+      var graph = GraphRoot.CreateGraph(hooks);
       var id = Any.String();
 
       //WHEN
@@ -291,7 +199,7 @@ namespace DAGSpecification
     public void ShouldAllowAddingTheSameNodeManyTimesAndTreatItAsSingleNode()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var police = Substitute.For<Group>();
@@ -310,9 +218,7 @@ namespace DAGSpecification
 
       //bug there should be a notification
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(police), police)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(police), police)
       );
     }
 
@@ -321,7 +227,7 @@ namespace DAGSpecification
     {
       //GIVEN
       var observer = Substitute.For<GraphHooks<string>>();
-      var graph = CreateGraph(observer);
+      var graph = GraphRoot.CreateGraph(observer);
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
@@ -334,8 +240,7 @@ namespace DAGSpecification
       observer.Received(1).RootNodeOverwritten(nameof(root), nameof(root2));
       XReceived.Only(() => observer.RootNodeOverwritten(nameof(root), nameof(root2)));
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root2), root2)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root2), root2)
       );
 
     }
@@ -344,7 +249,7 @@ namespace DAGSpecification
     public void ShouldNotUseOldRootWhenItIsOverwrittenWithTheSameId()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var root2 = Substitute.For<Agency>();
@@ -362,8 +267,7 @@ namespace DAGSpecification
       root2.Received(1).Accept(anyVisitor);
       root.DidNotReceive().Accept(Arg.Any<IAuthorizationEntityVisitor>());
 
-      graph.AssertContainsOnly(
-        Entry(nameof(root2), root2)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root2), root2)
       );
     }
 
@@ -371,7 +275,7 @@ namespace DAGSpecification
     public void ShouldNotifyObserverWhenObserverIsPassedToEmptyGraph()
     {
       var graphHooks = Substitute.For<GraphHooks<string>>();
-      var graph = CreateGraph(graphHooks);
+      var graph = GraphRoot.CreateGraph(graphHooks);
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
 
       //WHEN
@@ -385,7 +289,7 @@ namespace DAGSpecification
     public void ShouldNotifyObserverWhenObserverIsPassedToGraphWhereRootWasRemoved()
     {
       var graphHooks = Substitute.For<GraphHooks<string>>();
-      var graph = CreateGraph(graphHooks);
+      var graph = GraphRoot.CreateGraph(graphHooks);
       var anyVisitor = Substitute.For<IAuthorizationEntityVisitor>();
       var root = Substitute.For<Agency>();
 
@@ -404,7 +308,7 @@ namespace DAGSpecification
     public void ShouldThrowNodeNotFoundExceptionWhenAddingNodeToParentThatDoesNotExist()
     {
       //GIVEN
-      var graph = CreateGraph(Any.Instance<GraphHooks<string>>());
+      var graph = GraphRoot.CreateGraph(Any.Instance<GraphHooks<string>>());
 
       //WHEN - THEN
       Assert.Throws<NodeNotFoundException<string>>(() =>
@@ -417,7 +321,7 @@ namespace DAGSpecification
     public void ShouldThrowNodeNotFoundExceptionWhenRemovingAssociationWithWrongParent()
     {
       //GIVEN
-      var graph = CreateGraph();
+      var graph = GraphRoot.CreateGraph();
 
       var root = Substitute.For<Agency>();
       var childOfRoot1 = Substitute.For<Group>();
@@ -432,9 +336,7 @@ namespace DAGSpecification
       );
 
       //WHEN - THEN
-      graph.AssertContainsOnly(
-        Entry(nameof(root), root),
-        Entry(nameof(childOfRoot1), childOfRoot1)
+      graph.AssertContainsOnly(GraphRoot.Entry(nameof(root), root), GraphRoot.Entry(nameof(childOfRoot1), childOfRoot1)
       );
 
       //WHEN

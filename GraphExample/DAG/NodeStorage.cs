@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DAG.Interfaces;
-using NSubstitute.Exceptions;
 
 namespace DAG
 {
@@ -29,7 +27,6 @@ namespace DAG
         var node = _state[id];
         node.Value = value;
       }
-
 
       public void SetNode(TId id, TValue value)
       {
@@ -78,8 +75,12 @@ namespace DAG
         var intersect = currentNodes.Except(elements).ToArray();
         if (intersect.Length != 0)
         {
-          throw new Exception("There are " + intersect.Length + " non-intersecting elements: <" + FormatPairs(intersect) +
-                              ">");
+          throw new Exception(
+            "There are " + 
+            intersect.Length + 
+            " non-intersecting elements: <" + 
+            FormatPairs(intersect) + 
+            ">");
         }
 
         var intersect2 = elements.Except(currentNodes).ToArray();
